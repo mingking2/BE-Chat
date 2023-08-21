@@ -15,16 +15,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/users")
 public class UserController {
 
-    @Autowired
     private final UserService userService;
 
-//    @PostMapping("/register")
-//    public ResponseEntity<User> register(@RequestBody User user) {
-//        return userService.register(user);
-//    }
-
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user, HttpSession session) {
+    public ResponseEntity<?> register(@RequestBody User user) {
         User registeredUser = userService.register(user);
 
         if (registeredUser != null) {
@@ -33,7 +27,6 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("이메일이 중복되었습니다.");
         }
     }
-
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password, HttpSession session) {
