@@ -1,16 +1,10 @@
 package com.toyproject.authsystem.domain.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
-@Getter
+@Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class User {
@@ -20,9 +14,5 @@ public class User {
 
     private String email;
     private String password;
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 
 }
