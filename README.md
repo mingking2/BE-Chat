@@ -24,4 +24,4 @@
 
 <br><br>
 <br><br>
-![[Toy-project]AuthService.png](..%2F..%2F..%2F%5BToy-project%5DAuthService.png)
+![[Toy-project]AuthService.png](%5BToy-project%5DAuthService.png)
