@@ -33,7 +33,6 @@ public class UserController {
         }
     }
 
-
     /**
      * 회원가입하는 로직
      * @param user // 회원가입을 위한 user 객체 불러옴
@@ -89,6 +88,15 @@ public class UserController {
         session.removeAttribute("user");
         session.invalidate();
         return ResponseEntity.ok("로그아웃 성공! 이메일: " + email);
+    }
+
+    // 로그인된 사용자의 프로필 조회
+    @GetMapping("/profile")
+    public ResponseEntity<Object> getProfile(@SessionAttribute(name = "user", required = false) User user) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요한 기능입니다.");
+        }
+        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/reset")
