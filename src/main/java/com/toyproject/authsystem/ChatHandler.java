@@ -31,7 +31,7 @@ public class ChatHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String userMessage = String.format("유저 %s로부터 받은 메시지: %s", session.getId(), message.getPayload());
+        String userMessage = String.format("유저 %s: %s", session.getId(), message.getPayload());
         logger.info(userMessage);
         for (WebSocketSession s : sessions) {
             if (!s.equals(session) && s.isOpen()) {
