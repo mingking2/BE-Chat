@@ -31,10 +31,11 @@ public class ChatHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        logger.info("새로운 메시지 수신: " + message.getPayload());
+        String userMessage = String.format("유저 %s로부터 받은 메시지: %s", session.getId(), message.getPayload());
+        logger.info(userMessage);
         for (WebSocketSession s : sessions) {
             if (!s.equals(session) && s.isOpen()) {
-                s.sendMessage(message);
+                s.sendMessage(new TextMessage(userMessage));
             }
         }
     }
