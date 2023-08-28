@@ -39,9 +39,20 @@ public class UserService {
         }
     }
 
+    public User updateUserStatus(User user, String newStatus) {
+        // 이미 같은 상태 메시지를 가진 유저가 있는 경우 예외를 발생시킵니다.
+        if(newStatus.equals(user.getStatus())) {
+            throw new StatusAlreadyExistsException(String.format("이미 사용중인 상태메시지 입니다: %s", newStatus));
+        }
+
+        user.setStatus(newStatus);
+        return userRepository.save(user);
+    }
+
     // test를 위한 db초기화기능 넣음
     public void resetData() {
         userRepository.deleteAll();
         userRepository.resetIdSequence();
     }
 }
+

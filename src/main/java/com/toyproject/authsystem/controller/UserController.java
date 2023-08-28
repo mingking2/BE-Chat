@@ -2,6 +2,7 @@ package com.toyproject.authsystem.controller;
 
 
 import com.toyproject.authsystem.domain.entity.User;
+import com.toyproject.authsystem.service.StatusAlreadyExistsException;
 import com.toyproject.authsystem.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.Map;
 
 @RestController
 @AllArgsConstructor
@@ -23,26 +25,57 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * 로그인 후 홈화면이라 가정
-     * @param user // @SessionAttribute를 사용하여 이름이 "user"인 객체를 value 값으로 가진 sessionId가 있으면 객체를 반환
-     * @param session // sessionId 값을 보여주기 위함
-     * @return
-     */
-
-    @PostMapping("/success")
-    public ResponseEntity<?> home(@SessionAttribute(name = "user", required = false) User user, HttpSession session) {
-        log.info("success로 들어왓용ㅁ");
+    @PostMapping("/profile/image")
+    public ResponseEntity<?> getImage(@SessionAttribute(name = "user", required = false) User user) {
+        log.info("image 들어왓용ㅁ");
 
         if(user == null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
         }
         else {
             log.info(user.getEmail());
-            String sessionId = session.getId();
-            return ResponseEntity.ok().body(String.format("로그인 유저의 이메일: %s, 세션 ID: %s", user.getEmail(), sessionId));
+            return ResponseEntity.ok().body(String.format("로그인 유저의 이메일: %s, 이미지 URL: %s", user.getEmail(), user.getImageUrl()));
         }
     }
+
+    @PostMapping("/profile/nickname")
+    public ResponseEntity<?> getNickname(@SessionAttribute(name = "user", required = false) User user) {
+        log.info("nickname 들어왓용ㅁ");
+
+        if(user == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
+        }
+        else {
+            log.info(user.getEmail());
+            return ResponseEntity.ok().body(String.format("로그인 유저의 이메일: %s, 닉네임: %s", user.getEmail(), user.getNickname()));
+        }
+    }
+
+    @PatchMapping("/profile/status")
+    public ResponseEntity<?> getStatusOrUpdate(@SessionAttribute(name = "user", required = false) User user,
+                                               @RequestBody(required = false) Map<String, Object> payload) {
+        if(user == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
+        }
+
+        // 클라이언트가 상태 메시지를 보냈는지 확인합니다.
+        if(payload != null && payload.containsKey("status")) {
+            try {
+                String newStatus = (String) payload.get("status");
+
+                // 사용자의 상태 메시지를 변경합니다.
+                userService.updateUserStatus(user, newStatus);
+
+                return ResponseEntity.ok().body(String.format("상태메세지가 성공적으로 업데이트 되었습니다: %s", user.getStatus()));
+            } catch (StatusAlreadyExistsException ex) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+            }
+        } else {
+            // 클라이언트가 상태 메시지를 보내지 않았다면 현재의 상태 메시지를 반환합니다.
+            return ResponseEntity.ok().body(String.format("현재 유저의 이메일: %s, 상태메세지: %s", user.getEmail(), user.getStatus()));
+        }
+    }
+
 
     /**
      * 회원가입하는 로직
@@ -60,14 +93,6 @@ public class UserController {
         }
     }
 
-    /**
-     * 로그인을 위한 로직
-     * @param email // 쿼리스트링으로 아이디에 해당하는 email값
-     * @param password // 비밀번호
-     * @param session // 해당 파리미터를 퉁해 선언이 되면서 sessionId를 생성하고
-     *                      session.setAttribute를 이용하여 해당 아이디에 value값으로 user 객체를 넣어준다.
-     * @return
-     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User loginUser, HttpServletRequest request, HttpServletResponse response) {
         User user = userService.login(loginUser.getEmail(), loginUser.getPassword());
