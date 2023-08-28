@@ -3,15 +3,22 @@ package com.toyproject.authsystem.controller;
 
 import com.toyproject.authsystem.domain.entity.User;
 import com.toyproject.authsystem.service.UserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+
 @RestController
 @AllArgsConstructor
 @RequestMapping("/users")
+@Slf4j
 public class UserController {
 
     private final UserService userService;
@@ -22,7 +29,7 @@ public class UserController {
      * @param session // sessionId 값을 보여주기 위함
      * @return
      */
-    @GetMapping
+    @GetMapping("/success")
     public ResponseEntity<?> home(@SessionAttribute(name = "user", required = false) User user, HttpSession session) {
         if(user == null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
@@ -58,45 +65,48 @@ public class UserController {
      * @return
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password, HttpSession session) {
+    public ResponseEntity<?> login(@RequestBody User loginUser, HttpServletRequest request, HttpServletResponse response) {
+        User user = userService.login(loginUser.getEmail(), loginUser.getPassword());
 
-        User user = userService.login(email, password);
-        if (user != null) {
-            // 로그인 성공 시, 사용자의 email 및 세션 ID 출력
-            session.setAttribute("user", user);
-            return ResponseEntity.ok().body(
-                    String.format("로그인 성공! 이메일: %s, 세션 ID: %s", user.getEmail(), session.getId()));
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("이메일 또는 비밀번호가 잘못되었습니다.");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
         }
+
+        createSession(user, request, response);
+
+        return ResponseEntity.ok().body(String.format("Login successful! Email: %s", user.getEmail()));
+    }
+
+    private void createSession(User user, HttpServletRequest request, HttpServletResponse response) {
+        HttpSession session = request.getSession();
+        session.setAttribute("user", user);
+
+        String sessionIdCookie = "JSESSIONID=" + session.getId() + "; Path=/; Secure; HttpOnly; SameSite=None";
+
+        response.setHeader("Set-Cookie", ""); // Clear existing Set-Cookie header
+        response.addHeader("Set-Cookie", sessionIdCookie); // Add new Set-Cookie header
     }
 
     /**
      * 로그아웃을 위한 로직
-     * @param session // 로그아웃을 위해 기존 세션id를 불러온다.
+     * @param  // 로그아웃을 위해 기존 세션id를 불러온다.
      * @return
      */
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session) {
-        User loginUser = (User) session.getAttribute("user");
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        log.info(String.valueOf(session));
 
-        if(loginUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("이미 로그아웃된 상태이다.");
+        if (session != null) {
+            log.info(session.getId());
+            User loginUser = (User) session.getAttribute("user");
+            String email = loginUser.getEmail();
+            session.invalidate();
+            return ResponseEntity.ok("로그아웃 성공! 이메일: " + email);
         }
 
-        String email = loginUser.getEmail();
-        session.removeAttribute("user");
-        session.invalidate();
-        return ResponseEntity.ok("로그아웃 성공! 이메일: " + email);
-    }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 상태가 아닙니다.");
 
-    // 로그인된 사용자의 프로필 조회
-    @GetMapping("/profile")
-    public ResponseEntity<Object> getProfile(@SessionAttribute(name = "user", required = false) User user) {
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요한 기능입니다.");
-        }
-        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/reset")
