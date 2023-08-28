@@ -29,12 +29,16 @@ public class UserController {
      * @param session // sessionId 값을 보여주기 위함
      * @return
      */
-    @GetMapping("/success")
+
+    @PostMapping("/success")
     public ResponseEntity<?> home(@SessionAttribute(name = "user", required = false) User user, HttpSession session) {
+        log.info("success로 들어왓용ㅁ");
+
         if(user == null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
         }
         else {
+            log.info(user.getEmail());
             String sessionId = session.getId();
             return ResponseEntity.ok().body(String.format("로그인 유저의 이메일: %s, 세션 ID: %s", user.getEmail(), sessionId));
         }
