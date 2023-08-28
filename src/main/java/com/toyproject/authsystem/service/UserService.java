@@ -3,12 +3,14 @@ package com.toyproject.authsystem.service;
 import com.toyproject.authsystem.domain.entity.User;
 import com.toyproject.authsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
@@ -16,6 +18,7 @@ public class UserService {
     // newUser 객체에 있는 이메일의 중복 확인 후 db에 저장하고 해당 객체 반환
     public User register(User newUser) {
         // 이메일 중복 확인
+        log.info(newUser.getEmail());
         User existingUser = userRepository.findByEmail(newUser.getEmail());
         if(existingUser != null) {
             return null;
