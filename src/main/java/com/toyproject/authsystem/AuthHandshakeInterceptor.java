@@ -17,20 +17,22 @@ public class AuthHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
-        if(request instanceof ServletServerHttpRequest) {
-            ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
+        if(request instanceof ServletServerHttpRequest servletRequest) {
             HttpSession session = servletRequest.getServletRequest().getSession(false);
-            log.info(String.valueOf(session));
+
             if (session != null) {
                 User user = (User) session.getAttribute("user");
+                log.info(user.getEmail());
                 if (user == null) {
                     log.info("로그인이 필요합니다.");
                     return false; // "user" 속성이 없으면 핸드셰이크 거부
                 }
                 attributes.put("user", user);  // WebSocket 세션에 'user' 속성 추가
+                return true;
             }
         }
-        return true;
+        log.info("다 튕김 ㅋㅋ");
+        return false;
     }
 
     @Override
