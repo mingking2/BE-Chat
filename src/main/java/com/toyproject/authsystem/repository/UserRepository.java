@@ -12,4 +12,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying
     @Query(value = "ALTER TABLE user AUTO_INCREMENT = 1", nativeQuery = true)
     void resetIdSequence();
+
+    User findByNickname(String friendNickname);
 }

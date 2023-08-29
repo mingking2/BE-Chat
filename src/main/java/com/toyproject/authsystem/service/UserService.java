@@ -1,11 +1,16 @@
 package com.toyproject.authsystem.service;
 
+import com.toyproject.authsystem.IncorrectPasswordException;
 import com.toyproject.authsystem.domain.entity.User;
 import com.toyproject.authsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -47,6 +52,45 @@ public class UserService {
 
         user.setStatus(newStatus);
         return userRepository.save(user);
+    }
+
+    public User changePassword(User user, String currentPassword, String newPassword) {
+        if(!user.getPassword().equals(currentPassword)) {
+            throw new IncorrectPasswordException();
+        }
+
+        user.setPassword(newPassword);
+        return userRepository.save(user);
+    }
+
+    public User addFriend(String userEmail, String friendNickname) {
+        User user = userRepository.findByEmail(userEmail);
+        User friend = userRepository.findByNickname(friendNickname);
+
+        if (friend == null) {
+            throw new RuntimeException("그런 놈 없다 임마");
+        } else if (user.equals(friend)) {
+            throw new RuntimeException("자기 자신을 친구로 추가할 수 없습니다.");
+        } else if (user.getFriends().contains(friend)) {
+            throw new RuntimeException("이미 친구다 임마");
+        } else {
+            user.getFriends().add(friend);
+            friend.getFriends().add(user);
+            userRepository.save(user);
+            userRepository.save(friend);
+
+            return friend;
+        }
+    }
+
+    public List<User> getAllFriends(String nickname) {
+        User user = userRepository.findByNickname(nickname);
+
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + nickname);
+        }
+
+        return user.getFriends();
     }
 
     // test를 위한 db초기화기능 넣음

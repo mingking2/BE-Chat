@@ -1,6 +1,7 @@
 package com.toyproject.authsystem.controller;
 
 
+import com.toyproject.authsystem.IncorrectPasswordException;
 import com.toyproject.authsystem.domain.entity.User;
 import com.toyproject.authsystem.service.StatusAlreadyExistsException;
 import com.toyproject.authsystem.service.UserService;
@@ -24,6 +25,57 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody User user) {
+        User registeredUser = userService.register(user);
+
+        if (registeredUser != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(registeredUser);
+        } else {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("이메일이 중복되었습니다.");
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody User loginUser, HttpServletRequest request, HttpServletResponse response) {
+        User user = userService.login(loginUser.getEmail(), loginUser.getPassword());
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
+        }
+
+        createSession(user, request, response);
+
+        return ResponseEntity.ok().body(String.format("Login successful! Email: %s", user.getEmail()));
+    }
+
+    private void createSession(User user, HttpServletRequest request, HttpServletResponse response) {
+        HttpSession session = request.getSession();
+        session.setAttribute("user", user);
+
+        String sessionIdCookie = "JSESSIONID=" + session.getId() + "; Path=/; Secure; HttpOnly; SameSite=None";
+
+        response.setHeader("Set-Cookie", ""); // Clear existing Set-Cookie header
+        response.addHeader("Set-Cookie", sessionIdCookie); // Add new Set-Cookie header
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        log.info(String.valueOf(session));
+
+        if (session != null) {
+            log.info(session.getId());
+            User loginUser = (User) session.getAttribute("user");
+            String email = loginUser.getEmail();
+            session.invalidate();
+            return ResponseEntity.ok("로그아웃 성공! 이메일: " + email);
+        }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 상태가 아닙니다.");
+
+    }
 
     @PostMapping("/profile/image")
     public ResponseEntity<?> getImage(@SessionAttribute(name = "user", required = false) User user) {
@@ -76,66 +128,27 @@ public class UserController {
         }
     }
 
-
-    /**
-     * 회원가입하는 로직
-     * @param user // 회원가입을 위한 user 객체 불러옴
-     * @return registeredUser // ResponseEntity로 상태를 반환하고 body부분에 회원가입한 계정의 Json타입으로 출력
-     */
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        User registeredUser = userService.register(user);
-
-        if (registeredUser != null) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(registeredUser);
-        } else {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("이메일이 중복되었습니다.");
-        }
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User loginUser, HttpServletRequest request, HttpServletResponse response) {
-        User user = userService.login(loginUser.getEmail(), loginUser.getPassword());
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
+    @PostMapping("/profile/pwChange")
+    public ResponseEntity<?> changePassword(@SessionAttribute(name = "user", required = false) User user,
+                                            @RequestBody Map<String, String> payload) {
+        if(user == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
         }
 
-        createSession(user, request, response);
-
-        return ResponseEntity.ok().body(String.format("Login successful! Email: %s", user.getEmail()));
-    }
-
-    private void createSession(User user, HttpServletRequest request, HttpServletResponse response) {
-        HttpSession session = request.getSession();
-        session.setAttribute("user", user);
-
-        String sessionIdCookie = "JSESSIONID=" + session.getId() + "; Path=/; Secure; HttpOnly; SameSite=None";
-
-        response.setHeader("Set-Cookie", ""); // Clear existing Set-Cookie header
-        response.addHeader("Set-Cookie", sessionIdCookie); // Add new Set-Cookie header
-    }
-
-    /**
-     * 로그아웃을 위한 로직
-     * @param  // 로그아웃을 위해 기존 세션id를 불러온다.
-     * @return
-     */
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        log.info(String.valueOf(session));
-
-        if (session != null) {
-            log.info(session.getId());
-            User loginUser = (User) session.getAttribute("user");
-            String email = loginUser.getEmail();
-            session.invalidate();
-            return ResponseEntity.ok("로그아웃 성공! 이메일: " + email);
+        if(!payload.containsKey("currentPassword") || !payload.containsKey("newPassword")) {
+            return ResponseEntity.badRequest().body("현재 비밀번호와 새로운 비밀번호를 모두 제공해야 합니다");
         }
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 상태가 아닙니다.");
+        String currentPassword = payload.get("currentPassword");
+        String newPassword = payload.get("newPassword");
 
+        try {
+            userService.changePassword(user, currentPassword, newPassword);
+        } catch (IncorrectPasswordException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+
+        return ResponseEntity.ok().body(String.format("%s 유저의 패스워드가 성공적으로 변경되었습니다.", user.getEmail()));
     }
 
     @PostMapping("/reset")

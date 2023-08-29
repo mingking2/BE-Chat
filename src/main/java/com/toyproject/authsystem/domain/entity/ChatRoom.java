@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -11,23 +13,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 
-public class Chat {
+public class ChatRoom {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    private User user;
+    @ManyToMany(mappedBy = "chatRooms")
+    private List<User> users = new ArrayList<>();
 
-    private String message;
+    @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL)
+    private List<Message> messages = new ArrayList<>();
 
-    private LocalDateTime timestamp;
-
-
-    public Chat(User user, String payload, LocalDateTime now) {
-        this.user = user;
-        this.message = payload;
-        this.timestamp = now;
-    }
 }
