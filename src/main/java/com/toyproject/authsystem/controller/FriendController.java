@@ -8,15 +8,9 @@ import jakarta.servlet.http.HttpSession;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.security.Principal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @RestController
 @AllArgsConstructor
@@ -58,11 +52,11 @@ public class FriendController {
     public ResponseEntity<?> getAllFriends(HttpServletRequest request) {
         try {
             HttpSession session = request.getSession(false);
-            if(session == null) {
+            if (session == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("세션없다");
             }
-            
-            
+
+
             User user = (User) session.getAttribute("user");
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
