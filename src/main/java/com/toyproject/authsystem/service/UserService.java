@@ -1,6 +1,7 @@
 package com.toyproject.authsystem.service;
 
 import com.toyproject.authsystem.IncorrectPasswordException;
+import com.toyproject.authsystem.StatusAlreadyExistsException;
 import com.toyproject.authsystem.domain.entity.User;
 import com.toyproject.authsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -8,9 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @Transactional
@@ -93,10 +92,19 @@ public class UserService {
         return user.getFriends();
     }
 
+
+
     // test를 위한 db초기화기능 넣음
     public void resetData() {
         userRepository.deleteAll();
         userRepository.resetIdSequence();
+    }
+
+    public void resetData2() {
+        userRepository.deleteAllFromChatroomUserTable();
+        userRepository.resetChatroomUserIdSequence();
+        userRepository.deleteAllFromChatRoomTable();
+        userRepository.resetChatRoomIdSequence();
     }
 }
 

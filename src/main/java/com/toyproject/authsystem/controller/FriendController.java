@@ -6,6 +6,7 @@ import com.toyproject.authsystem.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.util.List;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/friends")
+@Slf4j
 public class FriendController {
 
     private final UserService userService;
@@ -48,7 +50,7 @@ public class FriendController {
     }
 
     // 친구 목록 조회
-    @GetMapping
+    @PostMapping
     public ResponseEntity<?> getAllFriends(HttpServletRequest request) {
         try {
             HttpSession session = request.getSession(false);
@@ -63,7 +65,7 @@ public class FriendController {
             }
 
             List<User> friends = userService.getAllFriends(user.getNickname());
-
+            log.info(friends.toString());
             return ResponseEntity.ok(friends);
 
         } catch (Exception e) {

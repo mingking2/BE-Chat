@@ -1,0 +1,40 @@
+<!--<!DOCTYPE html>-->
+<!--<html>-->
+<!--<head>-->
+<!--    <title>Chat Test</title>-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>-->
+<!--</head>-->
+
+<!--<body>-->
+
+<!--<button id="addUser">Add User to Chat Room</button>-->
+<!--<button id="sendMessage">Send Message</button>-->
+
+<!--<script type="text/javascript">-->
+<!--    var socket = new SockJS('http://localhost:8080/ws');-->
+<!--    var stompClient = Stomp.over(socket);-->
+
+<!--    stompClient.connect({}, function (frame) {-->
+<!--        console.log('Connected: ' + frame);-->
+
+<!--        // Subscribe to the chat room topic-->
+<!--        stompClient.subscribe('/topic/chatrooms/{chatroomId}', function (message) {-->
+<!--            console.log("Received: " + message.body);-->
+<!--        });-->
+
+<!--        document.getElementById("addUser").addEventListener("click", function(){-->
+<!--            // Send a addUser message-->
+<!--            stompClient.send("/app/chat/{chatroomId}/addUser", {}, JSON.stringify({ /* user data */ }));-->
+<!--        });-->
+
+<!--        document.getElementById("sendMessage").addEventListener("click", function(){-->
+<!--            // Send a sendMessage message-->
+<!--            stompClient.send("/app/chat/{chatroomId}/sendMessage", {}, JSON.stringify({ /* message data */ }));-->
+<!--        });-->
+<!--    });-->
+<!--</script>-->
+
+<!--</body>-->
+
+<!--</html>-->

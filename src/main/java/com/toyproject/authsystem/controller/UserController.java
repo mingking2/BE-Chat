@@ -3,9 +3,8 @@ package com.toyproject.authsystem.controller;
 
 import com.toyproject.authsystem.IncorrectPasswordException;
 import com.toyproject.authsystem.domain.entity.User;
-import com.toyproject.authsystem.service.StatusAlreadyExistsException;
+import com.toyproject.authsystem.StatusAlreadyExistsException;
 import com.toyproject.authsystem.service.UserService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -15,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.Map;
 
 @RestController
@@ -103,7 +101,7 @@ public class UserController {
         }
     }
 
-    @PatchMapping("/profile/status")
+    @PostMapping("/profile/status")
     public ResponseEntity<?> getStatusOrUpdate(@SessionAttribute(name = "user", required = false) User user,
                                                @RequestBody(required = false) Map<String, Object> payload) {
         if(user == null) {
@@ -153,7 +151,8 @@ public class UserController {
 
     @PostMapping("/reset")
     public ResponseEntity<?> resetDB() {
-        userService.resetData();
+        //userService.resetData();
+        userService.resetData2();
         return ResponseEntity.ok("데이터베이스가 초기화되었다.");
     }
 
