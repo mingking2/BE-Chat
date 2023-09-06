@@ -2,18 +2,26 @@ package com.toyproject.authsystem.controller;
 
 
 import com.toyproject.authsystem.IncorrectPasswordException;
-import com.toyproject.authsystem.domain.entity.User;
 import com.toyproject.authsystem.StatusAlreadyExistsException;
+import com.toyproject.authsystem.domain.entity.User;
+import com.toyproject.authsystem.service.FileStorageService;
 import com.toyproject.authsystem.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLConnection;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -23,6 +31,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final FileStorageService fileStorageService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
@@ -75,20 +84,49 @@ public class UserController {
 
     }
 
-    @PostMapping("/profile/image")
-    public ResponseEntity<?> getImage(@SessionAttribute(name = "user", required = false) User user) {
-        log.info("image 들어왓용ㅁ");
-
-        if(user == null) {
+    @GetMapping("/profile/image")
+    public ResponseEntity<?> getImage(@SessionAttribute(name = "user", required = false) User user) throws IOException {
+        if (user == null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
-        }
-        else {
-            log.info(user.getEmail());
-            return ResponseEntity.ok().body(String.format("로그인 유저의 이메일: %s, 이미지 URL: %s", user.getEmail(), user.getImageUrl()));
+        } else {
+            String fileName = userService.getUserImageFileName(user.getId());
+            Resource image = fileStorageService.loadFileAsResource(fileName);
+            String contentType = URLConnection.guessContentTypeFromName(image.getFilename());
+
+            if(contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + image.getFilename() + "\"")
+                    .body(image);
+
         }
     }
 
-    @PostMapping("/profile/nickname")
+
+    @PostMapping("/profile/imageUpdate")
+    public ResponseEntity<?> updateImage(@SessionAttribute(name = "user", required = false) User user,
+                                         @RequestParam("image") MultipartFile imageFile) {
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
+        } else {
+            try {
+                User updatedUser = userService.updateProfileImage(user.getId(), imageFile);
+
+                return new ResponseEntity<>(updatedUser, HttpStatus.OK);
+
+
+            } catch (IOException e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("파일 처리 중 오류 발생");
+            }
+        }
+    }
+
+
+    @GetMapping("/profile/nickname")
     public ResponseEntity<?> getNickname(@SessionAttribute(name = "user", required = false) User user) {
         log.info("nickname 들어왓용ㅁ");
 
@@ -96,13 +134,27 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
         }
         else {
-            log.info(user.getEmail());
-            return ResponseEntity.ok().body(String.format("로그인 유저의 이메일: %s, 닉네임: %s", user.getEmail(), user.getNickname()));
+            Map<String, String> response = new HashMap<>();
+            response.put("nickname", user.getNickname());
+            return ResponseEntity.ok().body(response);
+//            return ResponseEntity.ok().body(String.format("로그인 유저의 이메일: %s, 닉네임: %s", user.getEmail(), user.getNickname()));
         }
     }
 
-    @PostMapping("/profile/status")
-    public ResponseEntity<?> getStatusOrUpdate(@SessionAttribute(name = "user", required = false) User user,
+    @GetMapping("/profile/status")
+    public ResponseEntity<?> getStatus(@SessionAttribute(name = "user", required = false) User user) {
+        if(user == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
+        }
+
+        Map<String, String> response = new HashMap<>();
+        response.put("status", user.getStatus());
+
+        return ResponseEntity.ok().body(response);
+    }
+
+    @PostMapping("/profile/statusUpdate")
+    public ResponseEntity<?> updateStatus(@SessionAttribute(name = "user", required = false) User user,
                                                @RequestBody(required = false) Map<String, Object> payload) {
         if(user == null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("로그인 하지 않음");
@@ -116,15 +168,18 @@ public class UserController {
                 // 사용자의 상태 메시지를 변경합니다.
                 userService.updateUserStatus(user, newStatus);
 
-                return ResponseEntity.ok().body(String.format("상태메세지가 성공적으로 업데이트 되었습니다: %s", user.getStatus()));
+                //return ResponseEntity.ok().body(String.format("상태메세지가 성공적으로 업데이트 되었습니다: %s", user.getStatus()));
             } catch (StatusAlreadyExistsException ex) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
             }
-        } else {
-            // 클라이언트가 상태 메시지를 보내지 않았다면 현재의 상태 메시지를 반환합니다.
-            return ResponseEntity.ok().body(String.format("현재 유저의 이메일: %s, 상태메세지: %s", user.getEmail(), user.getStatus()));
         }
+
+        Map<String, String> response = new HashMap<>();
+        response.put("status", user.getStatus());
+
+        return ResponseEntity.ok().body(response);
     }
+
 
     @PostMapping("/profile/pwChange")
     public ResponseEntity<?> changePassword(@SessionAttribute(name = "user", required = false) User user,
@@ -149,7 +204,7 @@ public class UserController {
         return ResponseEntity.ok().body(String.format("%s 유저의 패스워드가 성공적으로 변경되었습니다.", user.getEmail()));
     }
 
-    @PostMapping("/reset")
+    @GetMapping("/reset")
     public ResponseEntity<?> resetDB() {
         //userService.resetData();
         userService.resetData2();

@@ -4,27 +4,43 @@ import com.toyproject.authsystem.IncorrectPasswordException;
 import com.toyproject.authsystem.StatusAlreadyExistsException;
 import com.toyproject.authsystem.domain.entity.User;
 import com.toyproject.authsystem.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 @Slf4j
+@Getter @Setter
 public class UserService {
 
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
+
+    // 아래 두 레포지토리는 테스트 초기화용입ㄴ다.ㅇ
+    //private final MessageRepository messageRepository;
+    //private final ChatRoomRepository chatRoomRepository;
+
+
+    @Autowired
+    public UserService(UserRepository userRepository, FileStorageService fileStorageService) {
+        this.userRepository = userRepository;
+        this.fileStorageService = fileStorageService;
+    }
 
     // newUser 객체에 있는 이메일의 중복 확인 후 db에 저장하고 해당 객체 반환
     public User register(User newUser) {
         // 이메일 중복 확인
         log.info(newUser.getEmail());
         User existingUser = userRepository.findByEmail(newUser.getEmail());
-        if(existingUser != null) {
+        if (existingUser != null) {
             return null;
         }
 
@@ -41,6 +57,37 @@ public class UserService {
         } else {
             return null;
         }
+    }
+
+    public User updateProfileImage(Long userId, MultipartFile imageFile) throws IOException {
+        // Load user from database
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        // Delete the old image file if it exists
+        String oldImageFileName = user.getImageUrl();
+        if (oldImageFileName != null && !oldImageFileName.isEmpty()) {
+            fileStorageService.deleteFile(oldImageFileName);
+        }
+
+
+        // Store the image and get its URL
+        String newImageFileName  = fileStorageService.storeFile(imageFile);
+
+        // Update the user's profile image URL
+        user.setImageUrl(newImageFileName);
+
+        // Save and return the updated user
+        return userRepository.save(user);
+    }
+
+    public String getUserImageFileName(Long userId) {
+        // Load user from database
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        // Return the image file name
+        return user.getImageUrl();
     }
 
     public User updateUserStatus(User user, String newStatus) {
@@ -88,8 +135,9 @@ public class UserService {
         if (user == null) {
             throw new IllegalArgumentException("User not found: " + nickname);
         }
+        List<User> friends = user.getFriends();
 
-        return user.getFriends();
+        return friends;
     }
 
 
@@ -101,10 +149,15 @@ public class UserService {
     }
 
     public void resetData2() {
+        //chatRoomRepository.deleteAll();
+       // chatRoomRepository.resetIdSequence();
         userRepository.deleteAllFromChatroomUserTable();
         userRepository.resetChatroomUserIdSequence();
         userRepository.deleteAllFromChatRoomTable();
         userRepository.resetChatRoomIdSequence();
+        //messageRepository.deleteAll();
+        //messageRepository.resetIdSequence();
     }
 }
+
 
